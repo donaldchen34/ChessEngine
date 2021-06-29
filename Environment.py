@@ -1,53 +1,64 @@
 import chess
 import chess.svg
 import random
+import threading
+import time
+from PyQt5.Qt import QObject
 
-class Environment:
-    def __init__(self):
+
+class Environment(QObject):
+    def __init__(self, signal, queue):
+        super(Environment, self).__init__()
         self.board = chess.Board()
         self.turn = random.randint(0,1) #0 - Player, 1 - Computer
 
-        #self.run()
+        self.queue = queue
+        self.signal = signal
 
     def showBoard(self):
         print(self.board) #Change to GUI
         print('----------------')
 
     def gameOver(self):
-        return self.board.is_checkmate()
+        return self.board.is_checkmate() or self.board.is_game_over() or self.board.is_stalemate()
 
     def playerTurn(self):
-        pass
+        print("Player Turn")
+        print("Your possible moves:")
+        print(self.board.legal_moves)
+
+        player_move = self.queue.pop()
+        self.board.push(player_move)
 
     def computerTurn(self):
-        pass
+        # Currently Computer makes a random move
+        # Need to change to RL or Minmax (More intelligent)
+        print("Computer turn")
+        moves = [move for move in self.board.legal_moves]
+        comp_move = random.randint(0, len(moves) - 1)
+        print(comp_move)
+        print(len(moves))
+        self.board.push(moves[comp_move])
 
     def playGame(self):
         # 0 - Player, 1 - Computer
-        if self.turn == 0:
-            print("Player Turn")
-            print("Your possible moves:")
-            print(self.board.legal_moves)
+        if self.turn % 2 == 0:
+            if len(self.queue) == 0:
+                while(len(self.queue) == 0):
+                    time.sleep(1)
 
-            player_move = input("Enter your move: ")
-            self.board.push_san(player_move)
-
+            self.playerTurn()
             self.turn += 1
 
-        if self.turn == 1:
-            #Currently Computer makes a random move
-            #Need to change to RL or Minmax (More intelligent)
-            print("Computer turn")
-            moves = [move for move in self.board.legal_moves]
-            comp_move = random.randint(0,len(moves)-1)
-            print(comp_move)
-            print(len(moves))
-            self.board.push(moves[comp_move])
+        if self.turn % 2 == 1:
+            self.computerTurn()
+            self.turn += 1
 
-            self.turn -= 1
+        self.signal.emit()
 
     def newGame(self):
-        pass
+        self.board.reset()
+        self.turn = random.randint(0,1) #0 - Player, 1 - Computer
 
     def run(self):
         print("You are {}".format("White" if self.turn == 0 else "Black"))
