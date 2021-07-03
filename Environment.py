@@ -3,6 +3,8 @@ import chess.svg
 import random
 import time
 from PyQt5.Qt import pyqtSignal, QThread
+from Computer import Computer
+from BoardRepresentation import Evaluator
 
 #Todo
 #makePlayerMove():
@@ -28,10 +30,14 @@ class Environment(QThread):
         self.piece_selected_pos = -1
         self.queue = []
 
+        self.evaluator = Evaluator()
+        self.computer = Computer(board=self.board)
+
     def showBoard(self):
         print(self.board)
         print('----------------')
 
+    #Might be missing some conditions
     def gameOver(self):
         return self.board.is_checkmate() or self.board.is_game_over() or self.board.is_stalemate()
 
@@ -77,11 +83,11 @@ class Environment(QThread):
         self.board.push(player_move)
 
     def computerTurn(self):
-        # Currently Computer makes a random move
-        # Need to change to RL or Minmax (More intelligent)
-        moves = [move for move in self.board.legal_moves]
-        comp_move = random.randint(0, len(moves) - 1)
-        self.board.push(moves[comp_move])
+        #Random move
+        #moves = [move for move in self.board.legal_moves]
+        #comp_move = random.randint(0, len(moves) - 1)
+        #self.board.push(moves[comp_move]
+        self.computer.makeMove()
 
     def playGame(self):
         while (not self.gameOver()):
@@ -92,6 +98,7 @@ class Environment(QThread):
             if self.turn % 2 == 1:
                 self.computerTurn()
 
+            print(self.basicEvaluation())
             self.turn += 1
             self.update_board_signal.emit()
 
@@ -110,6 +117,10 @@ class Environment(QThread):
 
     def getBoard(self):
         return self.board
+
+    def basicEvaluation(self):
+        Board_list = self.convertBoardToList()
+        return self.evaluator.getEval(board=Board_list,turn_count=self.turn,turn=self.board.turn)
 
     #https://stackoverflow.com/questions/55876336/is-there-a-way-to-convert-a-python-chess-board-into-a-list-of-integers
     def convertBoardToList(self):

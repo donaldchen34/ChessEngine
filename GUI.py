@@ -4,7 +4,7 @@ import chess.svg
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtWidgets import QApplication, QWidget
 from math import floor
-from PyQt5.Qt import pyqtSlot
+from Computer import Computer
 
 #https://stackoverflow.com/questions/61439815/how-to-display-an-svg-image-in-python
 #https://stackoverflow.com/questions/52993677/how-do-i-setup-signals-and-slots-in-pyqt-with-qthreads-in-both-directions
@@ -50,5 +50,3 @@ if __name__ == "__main__":
     window = GUI()
     window.show()
     app.exec()
-
-    print("WAT")
