@@ -4,7 +4,7 @@ import random
 import time
 from PyQt5.Qt import pyqtSignal, QThread
 from Computer import Computer
-from BoardRepresentation import Evaluator
+from BoardRepresentation import Evaluator, convertBoardToList
 
 #Todo
 #makePlayerMove():
@@ -12,8 +12,6 @@ from BoardRepresentation import Evaluator
 # - Sometimes Breaks
 # - Indicator for what piece is clicked
 # - Handle flipped board(if player has black pieces)
-#computerMove():
-# - Make intelligent
 
 
 class Environment(QThread):
@@ -45,7 +43,7 @@ class Environment(QThread):
 
         ROWS = 8
         if x < ROWS and y < ROWS and x >= 0 and y >= 0:
-            piece = self.convertBoardToList()[y][x]
+            piece = convertBoardToList(self.board)[y][x]
 
             pos = x + ((ROWS - 1) - y) * ROWS  # Check docs chess.Squares -> chess.A1 = 0 ... chess.H8 = 63
             # If no piece is currently selected
@@ -55,6 +53,22 @@ class Environment(QThread):
                     # Change to spaces that can be moved?
                     #squares = self.getBoard().attacks(pos)
                     #self.selected_piece_signal.emit(chess.svg.board(self.getBoard(), squares=squares, size=900))
+
+                    squares1 = self.getBoard().is_attacked_by(not self.board.turn, pos)
+                    squares2 = self.getBoard().attacks(pos)
+                    squares3 = self.getBoard().attackers(not self.board.turn, pos)
+
+                    print(len(squares3))
+                    temp = []
+                    if len(squares3):
+                        for attacker_pos, square in enumerate(squares3.tolist()):
+                            if square:
+                                print(attacker_pos,square)
+                                print(squares3)
+                                print(squares3.piece_at(attacker_pos))
+                                temp.append(squares3.piece_type_at(attacker_pos))
+
+                    print(temp)
 
                     self.piece_selected_pos = pos
                     self.piece_selected = piece
@@ -98,7 +112,7 @@ class Environment(QThread):
             if self.turn % 2 == 1:
                 self.computerTurn()
 
-            print(self.basicEvaluation())
+            print("Eval:", self.basicEvaluation())
             self.turn += 1
             self.update_board_signal.emit()
 
@@ -119,27 +133,8 @@ class Environment(QThread):
         return self.board
 
     def basicEvaluation(self):
-        Board_list = self.convertBoardToList()
+        Board_list = convertBoardToList(board=self.board)
         return self.evaluator.getEval(board=Board_list,turn_count=self.turn,turn=self.board.turn)
-
-    #https://stackoverflow.com/questions/55876336/is-there-a-way-to-convert-a-python-chess-board-into-a-list-of-integers
-    def convertBoardToList(self):
-        Board_list = []
-        temp = self.board.epd()
-
-        pieces = temp.split(" ", 1)[0]
-        rows = pieces.split("/")
-        for row in rows:
-            temp2 = []  # This is the row I make
-            for thing in row:
-                if thing.isdigit():
-                    for i in range(0, int(thing)):
-                        temp2.append('.')
-                else:
-                    temp2.append(thing)
-            Board_list.append(temp2)
-        return Board_list
-
 
 
 if __name__ == "__main__":

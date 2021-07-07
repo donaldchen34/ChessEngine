@@ -1,3 +1,5 @@
+from pgn_parser import parser,pgn
+
 #https://www.chessprogramming.org/Simplified_Evaluation_Function
 #https://chess.stackexchange.com/questions/347/what-is-an-accurate-way-to-evaluate-chess-positions
 #https://www.chessprogramming.org/Evaluation
@@ -86,10 +88,26 @@ SQUARE_TABLES = {
               }
 }
 
-class Evaluator:
-    def __init__(self):
-        pass
+#https://stackoverflow.com/questions/55876336/is-there-a-way-to-convert-a-python-chess-board-into-a-list-of-integers
+def convertBoardToList(board):
+    Board_list = []
+    temp = board.epd()
 
+    pieces = temp.split(" ", 1)[0]
+    rows = pieces.split("/")
+    for row in rows:
+        temp2 = []  # This is the row I make
+        for thing in row:
+            if thing.isdigit():
+                for i in range(0, int(thing)):
+                    temp2.append('.')
+            else:
+                temp2.append(thing)
+        Board_list.append(temp2)
+    return Board_list
+
+
+class Evaluator:
     def getEval(self, board, turn_count, turn):
 
         self.board = board #String representation of board
@@ -119,8 +137,14 @@ class Evaluator:
                         total_score -= self.getPieceValue(piece)
                         total_score -= self.getPositionBonus(piece,x,y)
 
+        total_score += self.getTurnBonus()
 
+        #Change to a percentage
         return total_score
+
+    def getTurnBonus(self):
+        #True - White Turn, False - Black Turn
+        return 30 if self.turn else -30
 
     def getGameState(self):
         #Currently no Opening Square Table for King
@@ -154,23 +178,7 @@ class Evaluator:
 if __name__ == "__main__":
     import chess
     board = chess.Board()
-
-    #Convert Board to a list
-    Board_list = []
-    temp = board.epd()
-
-    pieces = temp.split(" ", 1)[0]
-    rows = pieces.split("/")
-    for row in rows:
-        temp2 = []  # This is the row I make
-        for thing in row:
-            if thing.isdigit():
-                for i in range(0, int(thing)):
-                    temp2.append('.')
-            else:
-                temp2.append(thing)
-        Board_list.append(temp2)
-
+    Board_list =  convertBoardToList(board)
 
     test = Evaluator(board=Board_list,turn_count=0,turn=board.turn)
     print(test.getEval())

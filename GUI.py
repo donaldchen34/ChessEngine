@@ -4,12 +4,10 @@ import chess.svg
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtWidgets import QApplication, QWidget
 from math import floor
-from Computer import Computer
 
 #https://stackoverflow.com/questions/61439815/how-to-display-an-svg-image-in-python
 #https://stackoverflow.com/questions/52993677/how-do-i-setup-signals-and-slots-in-pyqt-with-qthreads-in-both-directions
 class GUI(QWidget):
-
 
     #Add restart Game Button
     def __init__(self, size = 900):
@@ -24,7 +22,10 @@ class GUI(QWidget):
 
         self.env = Environment(update_board_func = self.loadBoard)
         self.env.update_board_signal.connect(self.loadBoard)
-        self.env.start()
+        try:
+            self.env.start()
+        except Exception as e:
+            print(e)
 
         self.loadBoard()
 

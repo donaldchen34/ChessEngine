@@ -26,7 +26,7 @@ class DQN:
         z = Dense(SQUARE_CENTIC_FEATURES * NUM, activation= 'relu')(square_centric_input)
         merged = Concatenate(axis= 1)([x,y,z])
         t = Dense(FEATURE_REPRESENTATION,input_dim=3, activation= 'relu')(merged)
-        output = Dense(POSSIBLE_MOVES, activation='relu')(t)
+        output = Dense(POSSIBLE_MOVES, activation='tanh')(t)
 
         model = Model(inputs=[global_features_input,piece_centric_input,square_centric_input],
                       outputs=output)

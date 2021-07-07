@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Notes
-Board.csv
+Board.txt
 Notes.txt
