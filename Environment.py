@@ -5,6 +5,7 @@ import time
 from PyQt5.Qt import pyqtSignal, QThread
 from Computer import Computer
 from BoardRepresentation import Evaluator, convertBoardToList
+from FeatureExtracter import Feature_Extractor
 
 #Todo
 #makePlayerMove():
@@ -12,6 +13,7 @@ from BoardRepresentation import Evaluator, convertBoardToList
 # - Sometimes Breaks
 # - Indicator for what piece is clicked
 # - Handle flipped board(if player has black pieces)
+
 
 
 class Environment(QThread):
@@ -54,21 +56,9 @@ class Environment(QThread):
                     #squares = self.getBoard().attacks(pos)
                     #self.selected_piece_signal.emit(chess.svg.board(self.getBoard(), squares=squares, size=900))
 
-                    squares1 = self.getBoard().is_attacked_by(not self.board.turn, pos)
-                    squares2 = self.getBoard().attacks(pos)
-                    squares3 = self.getBoard().attackers(not self.board.turn, pos)
+                    w = Feature_Extractor()
+                    print("MOBILITY:", w.getMobility(self.getBoard(),x,y))
 
-                    print(len(squares3))
-                    temp = []
-                    if len(squares3):
-                        for attacker_pos, square in enumerate(squares3.tolist()):
-                            if square:
-                                print(attacker_pos,square)
-                                print(squares3)
-                                print(squares3.piece_at(attacker_pos))
-                                temp.append(squares3.piece_type_at(attacker_pos))
-
-                    print(temp)
 
                     self.piece_selected_pos = pos
                     self.piece_selected = piece

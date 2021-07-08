@@ -6,6 +6,7 @@ from pgn_parser import parser, pgn
 from BoardRepresentation import convertBoardToList
 import random
 from tqdm import tqdm
+from FeatureExtracter import Feature_Extractor
 
 #363 - 90 Board Representation in bits "4.1 Feature Representation Giraffe"
 #Missing 90 Features. Maybe convert some to more bit representation?
@@ -20,6 +21,7 @@ class TDLeaf:
     def __init__(self,alpha, gamma):
         self.alpha = alpha #learning rate
         self.gamma = gamma #discount rate
+        self.feature_extractor = Feature_Extractor()
 
 
     #Returns string representaitons of the board in a list [position1,position2,...]
@@ -91,208 +93,6 @@ class TDLeaf:
             chess_positions.append(convertBoardToList(board=board))
 
         return chess_positions
-
-    def featureExtraction(self,board):
-        """
-        :param board: string representation of a board
-        """
-        features = []
-        features.extend(self.getGlobalFeatures())
-        features.extend(self.getPieceCentricFeatures())
-        features.extend(self.getSquareCentricFeatures())
-
-        return features
-
-    def getGlobalFeatures(self,board):
-        """
-        Gets Side to move, Castling Rights, Material Configuration (Details in Board.txt)
-
-        :param board: chess.Board()
-        """
-        features = []
-        #Side to Move
-        sideToMove = board.turn
-
-        #Castling Rights
-        whiteLongCastle = board.has_queenside_castling_rights(1)
-        whiteShortCastle = board.has_kingside_castling_rights(1)
-        blackLongCastle = board.has_queenside_castling_rights(0)
-        blackShortCastle = board.has_kingside_castling_rights(0)
-
-        #Material Configuration
-        WhiteKing = len(board.pieces(6,1))
-        WhiteQueen = len(board.pieces(5,1))
-        WhiteRook = len(board.pieces(4,1))
-        WhiteBishop = len(board.pieces(3, 1))
-        WhiteKnight = len(board.pieces(2,1))
-        WhitePawn = len(board.pieces(1,1))
-        BlackKing = len(board.pieces(6,0))
-        BlackQueen = len(board.pieces(5,0))
-        BlackRook = len(board.pieces(4,0))
-        BlackBishop = len(board.pieces(3, 0))
-        BlackKnight = len(board.pieces(2,0))
-        BlackPawn = len(board.pieces(1,0))
-
-        features.append(sideToMove)
-        features.extend([whiteLongCastle,whiteShortCastle,blackLongCastle,blackShortCastle])
-        features.extend([WhiteKing,WhiteQueen,WhiteRook,WhiteBishop,WhiteKnight,WhitePawn,
-                        BlackKing,BlackQueen,BlackRook,BlackBishop,BlackKnight,BlackPawn])
-
-        return features
-
-    def getPieceCentricFeatures(self, board):
-        """
-        Gets Existence, Position, Lowest Value Attacker/ Defender, Mobility of each piece
-
-        :param board: string representation of a board
-        """
-
-        features = []
-        pieces = ['p1','p2','p3','p4','p5','p6','p7','p8','n1','n2','b1','b2''r1','r2','q','k',
-                  'P1','P2','P3','P4','P5','P6','P7','P8','N1','N2','B1','B2','R1','R2','Q','K']
-
-        positions = self.getPiecePositions(board)
-        for piece in pieces:
-
-            x = positions[piece]['x']
-            y = positions[piece]['y']
-            existence = 1 if x else 0
-            lowest_value_attacker = self.getLowestValueAttacker(board,x,y) if x else 0
-            lowest_value_defender = 0
-            mobility = 0
-
-            features.extend([existence,x,y,lowest_value_attacker,lowest_value_defender,mobility])
-
-        return features
-
-    def getLowestValueAttacker(self,board, x, y):
-        """
-        squares1 = self.getBoard().is_attacked_by(not self.board.turn, pos)
-        squares2 = self.getBoard().attacks(pos)
-        squares3 = self.getBoard().attackers(not self.board.turn, pos)
-        print('attacked by:')
-        print(squares1)
-        print('attacks:')
-        print(squares2)
-        print(len(squares2))
-        print('attackers:')
-        print(squares3)
-        print(len(squares3))
-        """
-
-        PIECE_TYPES = {}
-
-        num_y = ord(y) - 97
-        pos = x * 8 + num_y
-        attackers = board.attackers(board.turn, pos)
-        if len(attackers):
-            for attacker_pos,square in enumerate(attackers.tolist()):
-                if square:
-                    attackers.piece_type_at(attacker_pos)
-
-        else:
-            return 0
-
-
-    #Does not properly assign pieces to their slots
-    #Slots are filled by amount
-    #White pawn on e should be assigned to slot P5 but if eaten the slot will be taken by any extra pawns
-    def getPiecePositions(self,board):
-
-        #Actual Starting Positions
-        positions = {'k':  {'x': 'e', 'y': '1'},
-                     'q':  {'x': 'd', 'y': '1'},
-                     'r1': {'x': 'a', 'y': '1'},
-                     'r2': {'x': 'h', 'y': '1'},
-                     'b1': {'x': 'c', 'y': '1'},
-                     'b2': {'x': 'f', 'y': '1'},
-                     'n1': {'x': 'b', 'y': '1'},
-                     'n2': {'x': 'g', 'y': '1'},
-                     'p1': {'x': 'a', 'y': '2'},
-                     'p2': {'x': 'b', 'y': '2'},
-                     'p3': {'x': 'c', 'y': '2'},
-                     'p4': {'x': 'd', 'y': '2'},
-                     'p5': {'x': 'e', 'y': '2'},
-                     'p6': {'x': 'f', 'y': '2'},
-                     'p7': {'x': 'g', 'y': '2'},
-                     'p8': {'x': 'h', 'y': '2'},
-                     'K':  {'x': 'e', 'y': '8'},
-                     'Q':  {'x': 'd', 'y': '8'},
-                     'R1': {'x': 'a', 'y': '8'},
-                     'R2': {'x': 'h', 'y': '8'},
-                     'B1': {'x': 'c', 'y': '8'},
-                     'B2': {'x': 'f', 'y': '8'},
-                     'N1': {'x': 'b', 'y': '8'},
-                     'N2': {'x': 'g', 'y': '8'},
-                     'P1': {'x': 'a', 'y': '7'},
-                     'P2': {'x': 'b', 'y': '7'},
-                     'P3': {'x': 'c', 'y': '7'},
-                     'P4': {'x': 'd', 'y': '7'},
-                     'P5': {'x': 'e', 'y': '7'},
-                     'P6': {'x': 'f', 'y': '7'},
-                     'P7': {'x': 'g', 'y': '7'},
-                     'P8': {'x': 'h', 'y': '7'}
-                     }
-
-        positions = {'k':  {'x': '0', 'y': '0'},
-                     'q':  {'x': '0', 'y': '0'},
-                     'r1': {'x': '0', 'y': '0'},
-                     'r2': {'x': '0', 'y': '0'},
-                     'b1': {'x': '0', 'y': '0'},
-                     'b2': {'x': '0', 'y': '0'},
-                     'n1': {'x': '0', 'y': '0'},
-                     'n2': {'x': '0', 'y': '0'},
-                     'p1': {'x': '0', 'y': '0'},
-                     'p2': {'x': '0', 'y': '0'},
-                     'p3': {'x': '0', 'y': '0'},
-                     'p4': {'x': '0', 'y': '0'},
-                     'p5': {'x': '0', 'y': '0'},
-                     'p6': {'x': '0', 'y': '0'},
-                     'p7': {'x': '0', 'y': '0'},
-                     'p8': {'x': '0', 'y': '0'},
-                     'K':  {'x': '0', 'y': '0'},
-                     'Q':  {'x': '0', 'y': '0'},
-                     'R1': {'x': '0', 'y': '0'},
-                     'R2': {'x': '0', 'y': '0'},
-                     'B1': {'x': '0', 'y': '0'},
-                     'B2': {'x': '0', 'y': '0'},
-                     'N1': {'x': '0', 'y': '0'},
-                     'N2': {'x': '0', 'y': '0'},
-                     'P1': {'x': '0', 'y': '0'},
-                     'P2': {'x': '0', 'y': '0'},
-                     'P3': {'x': '0', 'y': '0'},
-                     'P4': {'x': '0', 'y': '0'},
-                     'P5': {'x': '0', 'y': '0'},
-                     'P6': {'x': '0', 'y': '0'},
-                     'P7': {'x': '0', 'y': '0'},
-                     'P8': {'x': '0', 'y': '0'}
-                    }
-
-        board_list = convertBoardToList(board)
-
-        for x,row in enumerate(board_list):
-            for y,piece in row:
-                if piece != '.':
-                    if piece == 'k' or piece == 'K' or piece == 'q' or piece == 'Q':
-                        positions[piece]['x'] = x
-                        positions[piece]['y'] = chr(y+97)
-                    else:
-                        slot = 1
-                        pieceslot = piece + slot
-                        while positions[pieceslot][x] == 0:
-                            slot += 1
-                            pieceslot = piece + slot
-
-                        positions[pieceslot]['x'] = x
-                        positions[pieceslot]['y'] = chr(y+97)
-
-        return positions
-
-    def getSquareCentricFeatures(self, board):
-        """
-        :param board: string representation of a board
-        """
-        pass
 
     def training(self,num_episodes, moves_to_make):
 
