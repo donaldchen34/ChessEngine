@@ -1,9 +1,9 @@
-#from tensorflow.keras.models import Model
-#from tensorflow.keras.layers import Dense, Input, Concatenate
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, Input, Concatenate
 import chess
 import chess.pgn
 from pgn_parser import parser, pgn
-from BoardRepresentation import convertBoardToList
 import random
 from tqdm import tqdm
 from FeatureExtracter import Feature_Extractor
@@ -11,18 +11,22 @@ from FeatureExtracter import Feature_Extractor
 #363 - 90 Board Representation in bits "4.1 Feature Representation Giraffe"
 #Missing 90 Features. Maybe convert some to more bit representation?
 GLOBAL_FEATURES = 17
-PIECE_CENTRIC_FEATURES = 160
-SQUARE_CENTIC_FEATURES = 64
+PIECE_CENTRIC_FEATURES = 192
+SQUARE_CENTIC_FEATURES = 128
 FEATURE_REPRESENTATION = GLOBAL_FEATURES + PIECE_CENTRIC_FEATURES + SQUARE_CENTIC_FEATURES
 NUM = 3
 
 POSSIBLE_MOVES = 4672 # 8x8x(8x7+8+9) -Change because no underpromotions
 class TDLeaf:
-    def __init__(self,alpha, gamma):
+    def __init__(self,alpha, gamma, batch_size = 64):
         self.alpha = alpha #learning rate
         self.gamma = gamma #discount rate
+        self.batch_size = batch_size
+
+
         self.feature_extractor = Feature_Extractor()
 
+        self.model = self.createModel()
 
     #Returns string representaitons of the board in a list [position1,position2,...]
     #Reads from "CCRL-4040.[1259165].pgn/CCRL-4040.[1259165].pgn"
@@ -40,10 +44,11 @@ class TDLeaf:
         i = 0
 
         game_total = 1_259_165
+        test_sample = 100
         #Chagnge total
-        pbar = tqdm(total=1000)
+        pbar = tqdm(total=test_sample)
         while True:
-            if i >= 1000:
+            if i >= test_sample:
                 break
 
             try:
@@ -62,19 +67,19 @@ class TDLeaf:
 
         return chessPositions
 
-    def getChessPositions(self, game):
-        # 1. Randomly choose move that is not end of game
-        # 2. Run board until that move
-        # 3. Save board as training data
-        # 4. Repeat 1-3 on same board 5 times
-        # 5. Repeat 4 on all data
-        # 6. Return Training_Data
+    def getChessPositions(self, game, random_positions = 5):
+        """
+
+        :param game: chess.Board
+        :return: returns 5 random chess positions from a game
+        """
 
         chess_positions = []
-        RANDOM_POSITIONS = 5
 
         #Not Optimal
-        for i in range(RANDOM_POSITIONS):
+        for i in range(random_positions):
+
+            features = []
 
             moves = parser.parse(str(game.mainline_moves()), actions=pgn.Actions())
             game_len = len(moves.movetext)
@@ -90,7 +95,11 @@ class TDLeaf:
                 board.push(move)
                 j += 1
 
-            chess_positions.append(convertBoardToList(board=board))
+            features.extend(self.feature_extractor.getGlobalFeatures(board))
+            features.extend(self.feature_extractor.getPieceCentricFeatures(board))
+            features.extend(self.feature_extractor.getSquareCentricFeatures(board))
+
+            chess_positions.append(features)
 
         return chess_positions
 
@@ -119,7 +128,7 @@ class TDLeaf:
         model = Model(inputs=[global_features_input,piece_centric_input,square_centric_input],
                       outputs=output)
 
-        #model.compile()
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-08, clipnorm=1.0))
 
         return model
 
@@ -130,27 +139,4 @@ def testTDLeaf():
     print("WAT")
 
 if __name__ == "__main__":
-    test_pgn = open('CCRL-4040.[1259165].pgn/CCRL-4040.[1259165].pgn')
-    first_game = chess.pgn.read_game(test_pgn)
-    print(str(first_game.mainline_moves()))
-    #`https: // github.com / brettbates / pgn_parser
-    game = parser.parse(str(first_game.mainline_moves()),actions=pgn.Actions())
-    print(game.move(2))
-    print(game.move(2).black.san)
-    print(len(game.movetext))
-
-    stop = 2
-    i = 0
-    board = first_game.board()
-    for move in first_game.mainline_moves():
-        if i > stop:
-            break
-        board.push(move)
-        i+=1
-
-    x = board.epd()
-    print(x)
-    print(type(x))
-    print(x.count("p"))
-
-    #testTDLeaf()
+    testTDLeaf()

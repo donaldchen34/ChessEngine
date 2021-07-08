@@ -1,9 +1,9 @@
-from Environment import convertBoardToList
+from BoardRepresentation import convertBoardToList
 import chess
 
 class Feature_Extractor():
 
-    def getFeatures(self,board):
+    def getFeatures(self,board): #337 Features
         features = []
         features.extend(self.getGlobalFeatures(board))
         features.extend(self.getPieceCentricFeatures(board))
@@ -11,7 +11,7 @@ class Feature_Extractor():
 
         return features
 
-    #Gets Side to move, Castling Rights, Material Configuration(Details in Board.txt)
+    #Gets Side to move, Castling Rights, Material Configuration(Details in Board.txt) - 17 Features
     def getGlobalFeatures(self, board):
         """
         Gets Side to move, Castling Rights, Material Configuration (Details in Board.txt)
@@ -50,7 +50,7 @@ class Feature_Extractor():
 
         return features
 
-    # Gets Existence, Position, Lowest Value Attacker/ Defender, Mobility of each piece
+    # Gets Existence, Position, Lowest Value Attacker/ Defender, Mobility of each piece - 192 Features
     def getPieceCentricFeatures(self, board):
         """
         #Gets Existence, Position, Lowest Value Attacker/ Defender, Mobility of each piece
@@ -76,6 +76,7 @@ class Feature_Extractor():
 
         return features
 
+    #Gets lowest attacker and defender for each square starting at A1 : pos = 0 , A2 : pos = 2, ... - 128 Features
     def getSquareCentricFeatures(self, board):
         """
         Gets lowest attacker and defender for each square starting at A1 : pos = 0 , A2 : pos = 2, ...

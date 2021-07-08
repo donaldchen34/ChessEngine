@@ -1,4 +1,4 @@
-from QLearning import DQN
+#from QLearning import DQN
 import random
 class Computer:
     def __init__(self, board, algo = 'random'):
@@ -18,7 +18,7 @@ class Computer:
         pass
 
     def neuralnetwork(self):
-        DQN()
+        #DQN()
         pass
 
     def makeMove(self):
