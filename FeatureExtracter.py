@@ -21,13 +21,13 @@ class Feature_Extractor():
         """
         features = []
         # Side to Move
-        sideToMove = board.turn
+        sideToMove = int(board.turn)
 
         # Castling Rights
-        whiteLongCastle = board.has_queenside_castling_rights(1)
-        whiteShortCastle = board.has_kingside_castling_rights(1)
-        blackLongCastle = board.has_queenside_castling_rights(0)
-        blackShortCastle = board.has_kingside_castling_rights(0)
+        whiteLongCastle = int(board.has_queenside_castling_rights(1))
+        whiteShortCastle = int(board.has_kingside_castling_rights(1))
+        blackLongCastle = int(board.has_queenside_castling_rights(0))
+        blackShortCastle = int(board.has_kingside_castling_rights(0))
 
         # Material Configuration
         WhiteKing = len(board.pieces(6, 1))
@@ -60,16 +60,17 @@ class Feature_Extractor():
         """
 
         features = []
-        pieces = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'n1', 'n2', 'b1', 'b2''r1', 'r2', 'q', 'k',
+        pieces = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'n1', 'n2', 'b1', 'b2', 'r1', 'r2', 'q', 'k',
                   'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'N1', 'N2', 'B1', 'B2', 'R1', 'R2', 'Q', 'K']
 
         positions = self.getPiecePositions(board)
         for piece in pieces:
-            x = positions[piece]['x'] #char
+            # x & y go from 1-8, 0 means not there
+            x = positions[piece]['x'] #int
             y = positions[piece]['y'] #int
             existence = 1 if x else 0
-            lowest_value_attacker,lowest_value_defender = self.getLowestValueAttackerandDefender(board,x,y) if existence else 0, 0
-            mobility = self.getMobility(board,x,y) if existence else 0
+            lowest_value_attacker,lowest_value_defender = self.getLowestValueAttackerandDefender(board,x - 1,y - 1) if existence else (0, 0)
+            mobility = self.getMobility(board,x - 1,y - 1) if existence else 0
 
             features.extend([existence, x, y, lowest_value_attacker, lowest_value_defender, mobility])
 
@@ -77,9 +78,20 @@ class Feature_Extractor():
 
     def getSquareCentricFeatures(self, board):
         """
-        :param board: string representation of a board
+        Gets lowest attacker and defender for each square starting at A1 : pos = 0 , A2 : pos = 2, ...
+
+        :param board: chess.Board
         """
-        pass
+        features = []
+
+        #return x + (7-y) * 8
+
+        for i in range(7,-1,-1):
+            for j in range(8):
+                lowest_attacker, lowest_defender = self.getLowestValueAttackerandDefender(board,j,i)
+                features.extend([lowest_attacker,lowest_defender])
+
+        return features
 
     def getPos(self,x, y):
         """
@@ -298,57 +310,59 @@ class Feature_Extractor():
                      'P8': {'x': 'h', 'y': '7'}
                      }
         """
-        positions = {'k': {'x': '0', 'y': '0'},
-                     'q': {'x': '0', 'y': '0'},
-                     'r1': {'x': '0', 'y': '0'},
-                     'r2': {'x': '0', 'y': '0'},
-                     'b1': {'x': '0', 'y': '0'},
-                     'b2': {'x': '0', 'y': '0'},
-                     'n1': {'x': '0', 'y': '0'},
-                     'n2': {'x': '0', 'y': '0'},
-                     'p1': {'x': '0', 'y': '0'},
-                     'p2': {'x': '0', 'y': '0'},
-                     'p3': {'x': '0', 'y': '0'},
-                     'p4': {'x': '0', 'y': '0'},
-                     'p5': {'x': '0', 'y': '0'},
-                     'p6': {'x': '0', 'y': '0'},
-                     'p7': {'x': '0', 'y': '0'},
-                     'p8': {'x': '0', 'y': '0'},
-                     'K': {'x': '0', 'y': '0'},
-                     'Q': {'x': '0', 'y': '0'},
-                     'R1': {'x': '0', 'y': '0'},
-                     'R2': {'x': '0', 'y': '0'},
-                     'B1': {'x': '0', 'y': '0'},
-                     'B2': {'x': '0', 'y': '0'},
-                     'N1': {'x': '0', 'y': '0'},
-                     'N2': {'x': '0', 'y': '0'},
-                     'P1': {'x': '0', 'y': '0'},
-                     'P2': {'x': '0', 'y': '0'},
-                     'P3': {'x': '0', 'y': '0'},
-                     'P4': {'x': '0', 'y': '0'},
-                     'P5': {'x': '0', 'y': '0'},
-                     'P6': {'x': '0', 'y': '0'},
-                     'P7': {'x': '0', 'y': '0'},
-                     'P8': {'x': '0', 'y': '0'}
+        positions = {'k':  {'x': 0, 'y': 0},
+                     'q':  {'x': 0, 'y': 0},
+                     'r1': {'x': 0, 'y': 0},
+                     'r2': {'x': 0, 'y': 0},
+                     'b1': {'x': 0, 'y': 0},
+                     'b2': {'x': 0, 'y': 0},
+                     'n1': {'x': 0, 'y': 0},
+                     'n2': {'x': 0, 'y': 0},
+                     'p1': {'x': 0, 'y': 0},
+                     'p2': {'x': 0, 'y': 0},
+                     'p3': {'x': 0, 'y': 0},
+                     'p4': {'x': 0, 'y': 0},
+                     'p5': {'x': 0, 'y': 0},
+                     'p6': {'x': 0, 'y': 0},
+                     'p7': {'x': 0, 'y': 0},
+                     'p8': {'x': 0, 'y': 0},
+                     'K':  {'x': 0, 'y': 0},
+                     'Q':  {'x': 0, 'y': 0},
+                     'R1': {'x': 0, 'y': 0},
+                     'R2': {'x': 0, 'y': 0},
+                     'B1': {'x': 0, 'y': 0},
+                     'B2': {'x': 0, 'y': 0},
+                     'N1': {'x': 0, 'y': 0},
+                     'N2': {'x': 0, 'y': 0},
+                     'P1': {'x': 0, 'y': 0},
+                     'P2': {'x': 0, 'y': 0},
+                     'P3': {'x': 0, 'y': 0},
+                     'P4': {'x': 0, 'y': 0},
+                     'P5': {'x': 0, 'y': 0},
+                     'P6': {'x': 0, 'y': 0},
+                     'P7': {'x': 0, 'y': 0},
+                     'P8': {'x': 0, 'y': 0}
                      }
 
         board_list = convertBoardToList(board)
 
         for x, row in enumerate(board_list):
-            for y, piece in row:
+            for y, piece in enumerate(row):
+
                 if piece != '.':
                     if piece == 'k' or piece == 'K' or piece == 'q' or piece == 'Q':
-                        positions[piece]['x'] = x #chr(x + 97)
-                        positions[piece]['y'] = y
+                        positions[piece]['x'] = x + 1 # +1 because 0 represents not there
+                        positions[piece]['y'] = y + 1
                     else:
                         slot = 1
-                        pieceslot = piece + slot
-                        while positions[pieceslot][x] == 0:
-                            slot += 1
-                            pieceslot = piece + slot
 
-                        positions[pieceslot]['x'] = x #chr(x + 97)
-                        positions[pieceslot]['y'] = y
+                        pieceslot = piece + str(slot)
+                        while positions[pieceslot]['x'] != 0:
+                            slot += 1
+                            pieceslot = piece + str(slot)
+
+                        positions[pieceslot]['x'] = x + 1
+                        positions[pieceslot]['y'] = y + 1
 
         return positions
 

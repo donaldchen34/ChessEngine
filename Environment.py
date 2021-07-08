@@ -56,10 +56,6 @@ class Environment(QThread):
                     #squares = self.getBoard().attacks(pos)
                     #self.selected_piece_signal.emit(chess.svg.board(self.getBoard(), squares=squares, size=900))
 
-                    w = Feature_Extractor()
-                    print("MOBILITY:", w.getMobility(self.getBoard(),x,y))
-
-
                     self.piece_selected_pos = pos
                     self.piece_selected = piece
             else:  # Piece is selected
