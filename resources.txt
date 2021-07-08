@@ -2,3 +2,9 @@ https://arxiv.org/abs/1509.01549
 https://www.youtube.com/user/cwkx/videos
 https://github.com/ryancwallace/losingchess/tree/master/losingchess
 http://www.ke.tu-darmstadt.de/lehre/archiv/ws-15-16/se-ki/slides/leaftdchess
+
+DeepQNN
+https://github.com/VXU1230/Medium-Tutorials/blob/master/dqn/cart_pole.py
+https://towardsdatascience.com/deep-reinforcement-learning-build-a-deep-q-network-dqn-to-play-cartpole-with-tensorflow-2-and-gym-8e105744b998
+https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
+https://github.com/higgsfield/RL-Adventure/blob/master/1.dqn.ipynb
