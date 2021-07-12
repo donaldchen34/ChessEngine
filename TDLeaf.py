@@ -9,7 +9,7 @@ from tqdm import tqdm
 from FeatureExtracter import Feature_Extractor
 
 #363 - 90 Board Representation in bits "4.1 Feature Representation Giraffe"
-#Missing 90 Features. Maybe convert some to more bit representation?
+#Missing 26 Features. Maybe convert some to more bit representation?
 GLOBAL_FEATURES = 17
 PIECE_CENTRIC_FEATURES = 192
 SQUARE_CENTIC_FEATURES = 128
@@ -18,11 +18,13 @@ NUM = 3
 
 POSSIBLE_MOVES = 4672 # 8x8x(8x7+8+9) -Change because no underpromotions
 class TDLeaf:
-    def __init__(self,alpha, gamma, batch_size = 64):
+    def __init__(self,alpha, gamma, num_episodes, moves_to_make, batch_size = 64):
         self.alpha = alpha #learning rate
         self.gamma = gamma #discount rate
         self.batch_size = batch_size
 
+        self.num_episodes = num_episodes
+        self.moves_to_make = moves_to_make
 
         self.feature_extractor = Feature_Extractor()
 
@@ -35,7 +37,10 @@ class TDLeaf:
     # Save work after done?
     # Optimize?
     def getTrainingData(self):
+        """
 
+        :return:
+        """
         TRAINING_DATA_PATH = "CCRL-4040.[1259165].pgn/CCRL-4040.[1259165].pgn"
         training_pgn = open(TRAINING_DATA_PATH)
 
@@ -63,7 +68,7 @@ class TDLeaf:
 
 
         pbar.close()
-        print("Done")
+        print("Getting Data Done")
 
         return chessPositions
 
@@ -103,11 +108,21 @@ class TDLeaf:
 
         return chess_positions
 
-    def training(self,num_episodes, moves_to_make):
+    def training(self):
 
-        for i in num_episodes:
+        #Each training iteration:
+        # Choose 256 positions from the training set
+        # -> Apply 1 random move to each position
+        # Self Play for 12 Turns
+        # Record results for the 12 searches/moves
+        # -> Update by adding changes over the 12 moves
 
-            for j in moves_to_make:
+
+        data = self.getTrainingData()
+
+        for episode in self.num_episodes:
+
+            for i in self.moves_to_make:
 
                 pass
         pass
@@ -133,7 +148,14 @@ class TDLeaf:
         return model
 
 def testTDLeaf():
-    test = TDLeaf(alpha=0.2, gamma=0.7)
+    alpha = .2
+    gamma = .7
+    training_iterations = 5
+    moves = 12
+
+
+
+    test = TDLeaf(alpha=alpha, gamma=gamma,num_episodes=training_iterations,moves_to_make=moves)
     games = test.getTrainingData()
     print(len(games))
     print("WAT")
