@@ -111,6 +111,12 @@ class Evaluator:
     def getEval(self, board, turn_count, turn):
 
         self.board = board #String representation of board
+
+        try:
+            self.board = convertBoardToList(board)
+        except:
+            pass
+
         self.turn_count = turn_count #Amount of turns
         self.turn = turn #Black or White to move
 

@@ -31,7 +31,7 @@ class Environment(QThread):
         self.queue = []
 
         self.evaluator = Evaluator()
-        self.computer = Computer(board=self.board)
+        self.computer = Computer(board=self.board, algo='minimax')
 
     def showBoard(self):
         print(self.board)
@@ -83,10 +83,7 @@ class Environment(QThread):
         self.board.push(player_move)
 
     def computerTurn(self):
-        #Random move
-        #moves = [move for move in self.board.legal_moves]
-        #comp_move = random.randint(0, len(moves) - 1)
-        #self.board.push(moves[comp_move]
+        print("computer turn")
         self.computer.makeMove()
 
     def playGame(self):
