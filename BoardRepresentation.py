@@ -1,5 +1,3 @@
-from pgn_parser import parser,pgn
-
 #https://www.chessprogramming.org/Simplified_Evaluation_Function
 #https://chess.stackexchange.com/questions/347/what-is-an-accurate-way-to-evaluate-chess-positions
 #https://www.chessprogramming.org/Evaluation
@@ -9,14 +7,6 @@ from pgn_parser import parser,pgn
 #https://chess.stackexchange.com/questions/347/what-is-an-accurate-way-to-evaluate-chess-positions
 # Example of eval function
 #c1 * material + c2 * mobility + c3 * king safety + c4 * center control + c5 * pawn structure + c6 * king tropism + ...
-
-#1. Get Chess position
-#2. Get basic eval of position
-#3. Random action
-#4. TD Leaf ReEval
-#5. Repeat Steps 3 and 4 for x number of moves
-#6. Repeat Step 1-5 For x episode
-#7. Get new Chess position and Repeat for all training data
 
 PIECE_VALUE = {
     'Q' : 900,  # Queen
@@ -28,7 +18,7 @@ PIECE_VALUE = {
 }
 
 SQUARE_TABLES = {
-    "P" : [ 0,  0,  0,  0,  0,  0,  0,  0,
+    "P" : [    0,  0,  0,  0,  0,  0,  0,  0,
                50, 50, 50, 50, 50, 50, 50, 50,
                10, 10, 20, 30, 30, 20, 10, 10,
                5,  5, 10, 25, 25, 10,  5,  5,
@@ -36,15 +26,15 @@ SQUARE_TABLES = {
                5, -5,-10,  0,  0,-10, -5,  5,
                5, 10, 10,-20,-20, 10, 10,  5,
                0,  0,  0,  0,  0,  0,  0,  0],
-    "N" : [-50,-40,-30,-30,-30,-30,-40,-50,
-                -40,-20,  0,  0,  0,  0,-20,-40,
-                -30,  0, 10, 15, 15, 10,  0,-30,
-                -30,  5, 15, 20, 20, 15,  5,-30,
-                -30,  0, 15, 20, 20, 15,  0,-30,
-                -30,  5, 10, 15, 15, 10,  5,-30,
-                -40,-20,  0,  5,  5,  0,-20,-40,
-                -50,-40,-30,-30,-30,-30,-40,-50],
-    "B" : [-20,-10,-10,-10,-10,-10,-10,-20,
+    "N" : [ -50,-40,-30,-30,-30,-30,-40,-50,
+            -40,-20,  0,  0,  0,  0,-20,-40,
+            -30,  0, 10, 15, 15, 10,  0,-30,
+            -30,  5, 15, 20, 20, 15,  5,-30,
+            -30,  0, 15, 20, 20, 15,  0,-30,
+            -30,  5, 10, 15, 15, 10,  5,-30,
+            -40,-20,  0,  5,  5,  0,-20,-40,
+            -50,-40,-30,-30,-30,-30,-40,-50],
+    "B" : [     -20,-10,-10,-10,-10,-10,-10,-20,
                 -10,  0,  0,  0,  0,  0,  0,-10,
                 -10,  0,  5, 10, 10,  5,  0,-10,
                 -10,  5,  5, 10, 10,  5,  5,-10,
@@ -52,7 +42,7 @@ SQUARE_TABLES = {
                 -10, 10, 10, 10, 10, 10, 10,-10,
                 -10,  5,  0,  0,  0,  0,  5,-10,
                 -20,-10,-10,-10,-10,-10,-10,-20],
-    "R" : [-20,-10,-10,-10,-10,-10,-10,-20,
+    "R" : [   -20,-10,-10,-10,-10,-10,-10,-20,
               -10,  0,  0,  0,  0,  0,  0,-10,
               -10,  0,  5, 10, 10,  5,  0,-10,
               -10,  5,  5, 10, 10,  5,  5,-10,
@@ -60,7 +50,7 @@ SQUARE_TABLES = {
               -10, 10, 10, 10, 10, 10, 10,-10,
               -10,  5,  0,  0,  0,  0,  5,-10,
               -20,-10,-10,-10,-10,-10,-10,-20],
-    "Q" : [-20,-10,-10, -5, -5,-10,-10,-20,
+    "Q" : [    -20,-10,-10, -5, -5,-10,-10,-20,
                -10,  0,  0,  0,  0,  0,  0,-10,
                -10,  0,  5,  5,  5,  5,  0,-10,
                -5,  0,  5,  5,  5,  5,  0, -5,
@@ -85,7 +75,7 @@ SQUARE_TABLES = {
                          -30,-10, 20, 30, 30, 20,-10,-30,
                          -30,-30,  0,  0,  0,  0,-30,-30,
                          -50,-30,-30,-30,-30,-30,-30,-50]
-              }
+    }
 }
 
 #https://stackoverflow.com/questions/55876336/is-there-a-way-to-convert-a-python-chess-board-into-a-list-of-integers
@@ -110,15 +100,11 @@ def convertBoardToList(board):
 class Evaluator:
     def getEval(self, board, turn_count, turn):
 
-        self.board = board #String representation of board
+        self.board = board  # chess.Board()
+        self.board_list = convertBoardToList(board)
 
-        try:
-            self.board = convertBoardToList(board)
-        except:
-            pass
-
-        self.turn_count = turn_count #Amount of turns
-        self.turn = turn #Black or White to move
+        self.turn_count = turn_count  # Amount of turns
+        self.turn = turn  # Black or White to move
 
         #Missing:
         # Mobility
@@ -129,11 +115,21 @@ class Evaluator:
         # King Pawn Tropism
         # Castling
         # 2 Bishops
+        # Checks/ Checkmate
+
+        if self.isGameOver():
+            outcome = self.board.outcome()
+            if self.board.is_stalemate():
+                pass
+            if outcome.winner == turn:
+                return 100000
+            else:
+                return -100000
 
         total_score = 0
 
-        #Materials
-        for x,row in enumerate(self.board):
+        # Materials
+        for x,row in enumerate(self.board_list):
             for y,piece in enumerate(row):
                 if piece != '.':
                     if piece.isupper():
@@ -145,30 +141,34 @@ class Evaluator:
 
         total_score += self.getTurnBonus()
 
-        #Change to a percentage
+        # Change to a percentage?
         return total_score
 
+    def isGameOver(self):
+        return self.board.is_game_over()
+        # return self.board.is_checkmate() or self.board.is_game_over() or self.board.is_stalemate()
+
     def getTurnBonus(self):
-        #True - White Turn, False - Black Turn
+        # True - White Turn, False - Black Turn
         return 30 if self.turn else -30
 
     def getGameState(self):
-        #Currently no Opening Square Table for King
-        #if self.turn_count < 10:
+        # Currently no Opening Square Table for King
+        # if self.turn_count < 10:
         #    return "OPENING"
-        if self.turn_count < 45:
+        if self.turn_count < 60:
             return "MIDDLE_GAME"
         else:
             return "END_GAME"
 
-    def getPositionBonus(self,piece,x,y):
+    def getPositionBonus(self, piece, x, y):
 
-        if piece.islower(): #For black pieces, SQUARE_TABLES is white orientated
+        if piece.islower():  # For black pieces, SQUARE_TABLES is white orientated
             y = 7 - y
             x = 7 - x
 
-        piece = piece.upper()
         pos = x * 8 + y
+        piece = piece.upper()
 
         if piece == 'K':
             return SQUARE_TABLES[piece][self.getGameState()][pos]

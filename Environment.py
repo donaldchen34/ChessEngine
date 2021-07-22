@@ -5,15 +5,14 @@ import time
 from PyQt5.Qt import pyqtSignal, QThread
 from Computer import Computer
 from BoardRepresentation import Evaluator, convertBoardToList
-from FeatureExtracter import Feature_Extractor
 
-#Todo
-#makePlayerMove():
+
+# Todo
+# Quality of Life:
+# Player Moves:
 # - Cant switch pieces after choosing one
-# - Sometimes Breaks
-# - Indicator for what piece is clicked
-# - Handle flipped board(if player has black pieces)
-
+# - Create indicator for what piece is clicked
+# - Flip board according to player piece
 
 
 class Environment(QThread):
@@ -22,23 +21,23 @@ class Environment(QThread):
     def __init__(self,update_board_func ):
         super(Environment, self).__init__()
         self.board = chess.Board()
-        self.turn = random.randint(0,1) #0 - Player, 1 - Computer
+        self.turn = random.randint(0,1)  # 0 - Player, 1 - Computer
 
-        self.update_board_func = update_board_func #Used for attack squares -> Need to change later -> Maybe a diff emit?
+        self.update_board_func = update_board_func
 
         self.piece_selected = False
         self.piece_selected_pos = -1
         self.queue = []
 
         self.evaluator = Evaluator()
-        self.computer = Computer(board=self.board, algo='minimax')
+        self.computer = Computer(board=self.board, algo='dqn')
 
-    def showBoard(self):
+    def show_board(self):
         print(self.board)
         print('----------------')
 
-    #Might be missing some conditions
-    def gameOver(self):
+    # Might be missing some conditions
+    def game_over(self):
         return self.board.is_checkmate() or self.board.is_game_over() or self.board.is_stalemate()
 
     def makePlayerMove(self,x,y):
@@ -51,10 +50,6 @@ class Environment(QThread):
             # If no piece is currently selected
             if not self.piece_selected:
                 if piece != '.':  # If not empty space
-
-                    # Change to spaces that can be moved?
-                    #squares = self.getBoard().attacks(pos)
-                    #self.selected_piece_signal.emit(chess.svg.board(self.getBoard(), squares=squares, size=900))
 
                     self.piece_selected_pos = pos
                     self.piece_selected = piece
@@ -74,32 +69,39 @@ class Environment(QThread):
 
                 self.piece_selected = False
 
-    def playerTurn(self):
+    def player_turn(self):
         if len(self.queue) == 0:
-            while (len(self.queue) == 0):
+            while len(self.queue) == 0:
                 time.sleep(0.5)
 
         player_move = self.queue.pop()
         self.board.push(player_move)
 
-    def computerTurn(self):
-        print("computer turn")
-        self.computer.makeMove()
+    def computer_turn(self):
+        self.computer.make_move()
 
-    def playGame(self):
-        while (not self.gameOver()):
+    def play_game(self):
+        while not self.game_over():
             # 0 - Player, 1 - Computer
             if self.turn % 2 == 0:
-                self.playerTurn()
+                self.player_turn()
 
             if self.turn % 2 == 1:
-                self.computerTurn()
+                self.computer_turn()
 
             print("Eval:", self.basicEvaluation())
             self.turn += 1
             self.update_board_signal.emit()
 
         print("Game Over")
+
+    def self_play(self):
+        while not self.game_over():
+            print("{} Turn".format("White" if self.turn % 2 == 0 else "Black"))
+            self.computer_turn()
+            self.turn += 1
+            self.update_board_signal.emit()
+            time.sleep(2)
 
     def newGame(self):
         self.board.reset()
@@ -109,17 +111,17 @@ class Environment(QThread):
         print("You are {}".format("White" if self.turn == 0 else "Black"))
 
         print("PLAYING")
-        self.playGame()
-
+        self.play_game()
+        #self.self_play()
 
     def getBoard(self):
         return self.board
 
     def basicEvaluation(self):
-        Board_list = convertBoardToList(board=self.board)
-        return self.evaluator.getEval(board=Board_list,turn_count=self.turn,turn=self.board.turn)
+        return self.evaluator.getEval(board=self.board, turn_count=self.turn, turn=self.board.turn)
+
 
 
 if __name__ == "__main__":
     game = Environment()
-    game.showBoard()
+    game.show_board()

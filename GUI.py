@@ -5,15 +5,17 @@ from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtWidgets import QApplication, QWidget
 from math import floor
 
-#https://stackoverflow.com/questions/61439815/how-to-display-an-svg-image-in-python
-#https://stackoverflow.com/questions/52993677/how-do-i-setup-signals-and-slots-in-pyqt-with-qthreads-in-both-directions
+# Todo
+# Add restart Game Button
+
 class GUI(QWidget):
 
-    #Add restart Game Button
     def __init__(self, size = 900):
         super().__init__()
 
         self.size = size
+
+        # https://stackoverflow.com/questions/61439815/how-to-display-an-svg-image-in-python
         self.setGeometry(100, 100, self.size, self.size)
         self.widgetSvg = QSvgWidget(parent=self)
         self.widgetSvg.setGeometry(0, 0, self.size, self.size)
@@ -29,12 +31,14 @@ class GUI(QWidget):
 
         self.loadBoard()
 
+    # Don't need?
+    # Test without
     def loadBoard(self, board = None):
         self.chessboardSvg = chess.svg.board(self.env.getBoard()).encode("UTF-8") if board == None else board.encode("UTF-8")
         self.widgetSvg.load(self.chessboardSvg)
 
     def mousePressEvent(self, event):
-        # Borders: 35,865
+        # Borders: 35, 865
         BORDER_LEN = 35
         ROWS = 8
 
