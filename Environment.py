@@ -111,8 +111,8 @@ class Environment(QThread):
         print("You are {}".format("White" if self.turn == 0 else "Black"))
 
         print("PLAYING")
-        #self.play_game()
-        self.self_play()
+        self.play_game()
+        #self.self_play()
 
     def get_board(self):
         return self.board
