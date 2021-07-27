@@ -1,4 +1,4 @@
-from BoardRepresentation import convertBoardToList
+from BoardRepresentation import convert_board_to_list
 import chess
 
 
@@ -306,7 +306,7 @@ class FeatureExtractor:
                      'P8': {'x': 0, 'y': 0}
                      }
 
-        board_list = convertBoardToList(board)
+        board_list = convert_board_to_list(board)
 
         for x, row in enumerate(board_list):
             for y, piece in enumerate(row):

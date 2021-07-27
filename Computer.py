@@ -1,7 +1,6 @@
 import random
 from BoardRepresentation import Evaluator
 import copy
-from TDLeaf import TDLeaf
 import numpy as np
 from FeatureExtracter import FeatureExtractor
 
@@ -35,7 +34,7 @@ class Computer:
     def minimax_helper(self, board, depth, alpha, beta, maximizing_player):
         if depth == 0 or board.is_game_over():
             turn = board.fullmove_number * 2 + 1 if board.turn else board.fullmove_number * 2  # Line used in TDLeaf too
-            return None, self.evaluator.getEval(board=board, turn_count=turn, turn=not board.turn)
+            return None, self.evaluator.get_eval(board=board, turn_count=turn, turn=not board.turn)
 
         moves = [move for move in board.legal_moves]
         best_move = moves[0]
@@ -75,7 +74,7 @@ class Computer:
         # -> Use model to predict evaluation on each possible move
         #   -> Use best move
 
-        model = TDLeaf.create_model()
+        model = self.create_model()
         model.load_weights('weights.h5')
 
         feature_extractor = FeatureExtractor()
@@ -95,9 +94,9 @@ class Computer:
             x = model([global_features, piece_centric_features, square_centric_features])
             print(x)
             x = x.numpy()[0][0]  # x is stored as a [[evaluation]]
-            print(x , board_copy.turn)
+            print(x, board_copy.turn)
 
-            x = -x if board_copy.turn else x  # Inverse if black turn
+            x = -x if not board_copy.turn else x  # Inverse if black turn
             print(x)
             print('------------')
             if x > best_val:
@@ -106,7 +105,49 @@ class Computer:
 
         board.push(best_move)
 
+    # Copied from TDLeaf
+    def create_model(self):
+        import tensorflow as tf
+        from tensorflow.keras.models import Model
+        from tensorflow.keras.layers import Dense, Input, concatenate
 
+        # 363 - 90 Board Representation in bits "4.1 Feature Representation Giraffe"
+        # Missing 26 Features
+        GLOBAL_FEATURES = 17
+        PIECE_CENTRIC_FEATURES = 192
+        SQUARE_CENTIC_FEATURES = 128
+        FEATURE_REPRESENTATION = GLOBAL_FEATURES + PIECE_CENTRIC_FEATURES + SQUARE_CENTIC_FEATURES
+
+        # Following the rules:
+        # The number of hidden neurons should be:
+        # 1. Between the size of the input layer and the size of the output layer
+        # 2. 2/3 the size of the input layer plus the size of the output layer
+        # 3. less than twice the size of the input layer
+        # -> The two hidden layers are broken down into thirds of the input size
+
+        # +1 in Dense layer for x, y, z to represent the bias
+        global_features_input = Input(shape=(GLOBAL_FEATURES,))
+        x = Dense(int(GLOBAL_FEATURES / 3), activation='relu', use_bias=True)(global_features_input)
+        x = Model(inputs=global_features_input, outputs=x)
+
+        piece_centric_input = Input(shape=(PIECE_CENTRIC_FEATURES,))
+        y = Dense(int(PIECE_CENTRIC_FEATURES / 3), activation='relu', use_bias=True)(piece_centric_input)
+        y = Model(inputs=piece_centric_input, outputs=y)
+
+        square_centric_input = Input(shape=(SQUARE_CENTIC_FEATURES,))
+        z = Dense(int(SQUARE_CENTIC_FEATURES / 3), activation='relu', use_bias=True)(square_centric_input)
+        z = Model(inputs=square_centric_input, outputs=z)
+
+        merged = concatenate([x.output, y.output, z.output])
+        t = Dense(int(FEATURE_REPRESENTATION / 3), input_dim=4, activation='relu', use_bias=True)(merged)
+        output = Dense(1, activation='tanh')(t)
+
+        model = Model(inputs=[x.input, y.input, z.input],
+                      outputs=output)
+
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-08, clipnorm=1.0))
+
+        return model
 
     def make_move(self):
         if self.algo == 'random':

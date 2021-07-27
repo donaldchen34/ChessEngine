@@ -9,49 +9,30 @@ from tqdm import tqdm
 from FeatureExtracter import FeatureExtractor
 import numpy as np
 from BoardRepresentation import Evaluator
-from collections import deque
 import copy
+from Computer import Computer
 
 # 363 - 90 Board Representation in bits "4.1 Feature Representation Giraffe"
-# Missing 26 Features. Maybe convert some to more bit representation?
+# Missing 26 Features
 GLOBAL_FEATURES = 17
 PIECE_CENTRIC_FEATURES = 192
 SQUARE_CENTIC_FEATURES = 128
 FEATURE_REPRESENTATION = GLOBAL_FEATURES + PIECE_CENTRIC_FEATURES + SQUARE_CENTIC_FEATURES
 
-POSSIBLE_MOVES = 4672  # 8x8x(8x7+8+9) - Change because no under promotions
-
-# Todo
-# Add game_over +- Huge amount in evaluation
-# Look at losingchess implementation
-# -> How to initalize self
-# -> How to update TDLeaf with the 12 games and the error
-#   -> Create Total error func
-#   -> Create Update rule func
-# -> Getting gradient
-# -> REVIEW TD LEAF AGAIN :(
-#   -> Look at Notes
-# Do i need two neural networks?
-# How to update neural network??
-
 
 class TDLeaf:
-    def __init__(self, alpha, gamma, num_episodes, moves_to_make, batch_size=256):
+    def __init__(self, alpha, gamma, training_iterations, moves_to_make, batch_size=256):
         self.alpha = alpha  # learning rate
         self.gamma = gamma  # discount rate
 
         self.batch_size = batch_size
 
-        self.num_episodes = num_episodes
+        self.training_iterations = training_iterations
         self.moves_to_make = moves_to_make
 
         self.feature_extractor = FeatureExtractor()
 
         self.model = self.create_model()
-        # Not Used
-        self.target_model = self.create_model()
-        self.target_model.set_weights(self.model.get_weights())
-
         self.basic_eval = Evaluator()
 
     def training(self):
@@ -66,51 +47,40 @@ class TDLeaf:
         data = self.get_training_data()
         data_len = len(data)
 
-        print("Training for Episodes")
-        for episode in tqdm(range(self.num_episodes)):
+        computer = Computer(algo='minimax',depth=1)
+
+        print("Training Iterations")
+        for episode in tqdm(range(self.training_iterations)):
             print("Training batch")
+
+            total_errors = []
+            states = []
+
             for i in tqdm(range(self.batch_size)):  # 1 #Change to randsample and read for each game
                 game_num = random.randint(0, data_len - 1)
                 game = data[game_num]  # 2 - Random positions already applied
 
-                inital_state = copy.deepcopy(game)
+                initial_state = copy.deepcopy(game)
                 rewards = []
+                states.append(initial_state)
 
                 for j in range(self.moves_to_make):  # 3 - Self play for 12 Turns
                     if game.is_game_over():
                         break
 
-                    # Todo
-                    # Add Epsilon to do random moves vs TD Eval moves
-                    # Get best move based on our TD Evaluator
-                    possible_moves = [move for move in game.legal_moves]
-                    best_move = possible_moves[0]
-                    score = -1  # tanh minimum is -1
-                    for move in possible_moves:
-                        board_copy = copy.deepcopy(game)
-                        board_copy.push(move)
-
-                        # Maybe make it a function? self.predict()/ get_best_move()
-                        global_features = np.array([self.feature_extractor.get_global_features(board_copy)])
-                        piece_centric_features = np.array([self.feature_extractor.get_piece_centric_features(board_copy)])
-                        square_centric_features = np.array([self.feature_extractor.get_square_centric_features(board_copy)])
-                        x = self.model([global_features, piece_centric_features, square_centric_features])
-                        x = x.numpy()[0][0]  # x is stored as a [[evaluation]]
-                        x = -x if not board_copy.turn else x  # Inverse if black turn
-                        if x > score:
-                            score = x
-                            best_move = move
+                    # Not sure if a turn is considered one move or two moves
+                    # Reward may be skewed. Need to scale it down
+                    action, reward_1 = computer.minimax(game, 1, game.turn)
 
                     # turn is not accurate
                     turn = game.fullmove_number * 2 + 1 if game.turn else game.fullmove_number * 2
-                    reward_0 = self.basic_eval.getEval(board=game, turn_count=turn, turn=game.turn)
-                    action = best_move
+                    reward_0 = self.basic_eval.get_eval(board=game, turn_count=turn, turn=game.turn)
                     game.push(action)
 
-                    turn = game.fullmove_number * 2 + 1 if game.turn else game.fullmove_number * 2
-                    reward_1 = self.basic_eval.getEval(board=game, turn_count=turn, turn=game.turn)
                     reward = reward_1 - reward_0
 
+                    """
+                    # Add a bonus or penalty for winning/ losing
                     if game.is_game_over():
                         # Rewards may be too large
                         outcome = game.outcome()
@@ -120,62 +90,46 @@ class TDLeaf:
                             reward = 100000
                         else:
                             reward = -100000
+                    """
 
-                    reward = -reward if not game.turn else reward
+                    # reward = -reward if game.turn else reward
                     rewards.append(reward)
-
-                # 5 - Update rule
 
                 # Get total error
                 total_error = 0
                 for x, reward in enumerate(rewards):
                     total_error += reward * self.gamma ** x
+                total_errors.append(total_error)
 
-                print("Total Error for epipsode {episode_num}, batch{batch_num}:".format(episode_num=episode, batch_num=i), total_error)
+            # 5 - Update weights
 
-                global_features = np.array([self.feature_extractor.get_global_features(inital_state)])
-                piece_centric_features = np.array([self.feature_extractor.get_piece_centric_features(inital_state)])
-                square_centric_features = np.array([self.feature_extractor.get_square_centric_features(inital_state)])
+            # Update Gradients
+            for state, error in zip(states,total_errors):
+                global_features = np.array([self.feature_extractor.get_global_features(state)])
+                piece_centric_features = np.array([self.feature_extractor.get_piece_centric_features(state)])
+                square_centric_features = np.array([self.feature_extractor.get_square_centric_features(state)])
 
-                # Currently updating the weights after each episode
-                weight = self.model.get_weights()
                 with tf.GradientTape() as tape:
-                    # Might have to change loss function -> L1 Loss function
-                    #   -> Get loss of all states leading up to final state
-                    #   -> Sum of all the losses
+                    # Use L1 Loss Function
                     loss = self.model([global_features, piece_centric_features, square_centric_features])
+                    loss_func = tf.reduce_sum(abs(loss - error))
 
-                gradient = tape.gradient(loss, self.model.trainable_weights)
+                gradient = tape.gradient(loss_func, self.model.trainable_weights)
 
-                new_gradient = []
-                for x in gradient:
-                    x = x * total_error
-                    x = x * self.alpha
-                    new_gradient.append(x)
-
-                new_weight = []
-                for weight, gradient in zip(weight, new_gradient):
-                    new_weight.append(weight + gradient)
-
-                self.model.set_weights(new_weight)
-
-            print("Batch Done")
+                opt = tf.keras.optimizers.Adadelta(learning_rate=0.001)
+                opt.apply_gradients(zip(gradient,self.model.trainable_weights))
 
         # Save model
         self.model.save_weights('weights.h5')
 
-    def predict(self, model=None):
-        input_model = model if model else self.model
-
-    # Returns string representaitons of the board in a list [position1,position2,...]
+    # Returns string representations of the board in a list [position1,position2,...]
     # Reads from "CCRL-4040.[1259165].pgn/CCRL-4040.[1259165].pgn"
     # Wild inefficient
-    # Multi process
+    # -> Optimize?
+    # Multi process?
     # Save work after done?
-    # Optimize?
     def get_training_data(self):
         """
-
         :return: Returns board positions with random moves applied to them from the pgn file
         """
         TRAINING_DATA_PATH = "CCRL-4040.[1259165].pgn/CCRL-4040.[1259165].pgn"
@@ -186,36 +140,33 @@ class TDLeaf:
         i = 0
 
         game_total = 1_259_165  # amount of games in the training_pgn
-        test_sample = 2500
+        test_sample = 500
         # Change total
         pbar = tqdm(total=test_sample)
         print("Getting Training Data")
         while True:
             if i >= test_sample:
                 break
-            try:
-                game = chess.pgn.read_game(training_pgn)
-            except:
-                print("error?")
-            else:
-                chess_positions.extend(self.get_chess_positions(game))
-                i += 1
-                pbar.update(1)
+            game = chess.pgn.read_game(training_pgn)
+            chess_positions.extend(self.get_chess_positions(game))
+            i += 1
+            pbar.update(1)
 
         pbar.close()
+
         print("Getting Training Data Done")
 
         return chess_positions
 
     # Gets 5 random positions from a game and applies a random move to it
     # Used to increase training_sample_size
-    def get_chess_positions(self, game, random_positions=5):
+    @staticmethod
+    def get_chess_positions(game, random_positions=5):
         """
         :param random_positions: amount of positions to get from a chess.board game
         :param game: chess.Board
         :return: returns random_position amount of random chess.Board positions from a game
         """
-
         chess_positions = []
 
         # Not Optimal
@@ -254,21 +205,19 @@ class TDLeaf:
 
         # +1 in Dense layer for x, y, z to represent the bias
         global_features_input = Input(shape=(GLOBAL_FEATURES,))
-        x = Dense(int(GLOBAL_FEATURES / 3), activation='relu')(global_features_input)
+        x = Dense(int(GLOBAL_FEATURES / 3), activation='relu', use_bias=True)(global_features_input)
         x = Model(inputs=global_features_input, outputs=x)
 
         piece_centric_input = Input(shape=(PIECE_CENTRIC_FEATURES,))
-        y = Dense(int(PIECE_CENTRIC_FEATURES / 3), activation='relu')(piece_centric_input)
+        y = Dense(int(PIECE_CENTRIC_FEATURES / 3), activation='relu', use_bias=True)(piece_centric_input)
         y = Model(inputs=piece_centric_input, outputs=y)
 
         square_centric_input = Input(shape=(SQUARE_CENTIC_FEATURES,))
-        z = Dense(int(SQUARE_CENTIC_FEATURES / 3), activation='relu')(square_centric_input)
+        z = Dense(int(SQUARE_CENTIC_FEATURES / 3), activation='relu', use_bias=True)(square_centric_input)
         z = Model(inputs=square_centric_input, outputs=z)
 
-        #merged_bias = Input(shape=(1,))
-        #q = Model(inputs=merged_bias,outputs=merged_bias)
         merged = concatenate([x.output, y.output, z.output])
-        t = Dense(int(FEATURE_REPRESENTATION / 3), input_dim=4, activation='relu')(merged)
+        t = Dense(int(FEATURE_REPRESENTATION / 3), input_dim=4, activation='relu', use_bias=True)(merged)
         output = Dense(1, activation='tanh')(t)
 
         model = Model(inputs=[x.input, y.input, z.input],
@@ -282,12 +231,14 @@ class TDLeaf:
 def test_TDLeaf():
     alpha = 1
     gamma = .7
-    training_iterations = 5
-    moves = 12
+    training_iterations = 25
+    moves = 6
 
-    test = TDLeaf(alpha=alpha, gamma=gamma, num_episodes=training_iterations, moves_to_make=moves)
+    test = TDLeaf(alpha=alpha, gamma=gamma, training_iterations=training_iterations, moves_to_make=moves)
     test.training()
 
 
 if __name__ == "__main__":
     test_TDLeaf()
+
+

@@ -4,7 +4,7 @@ import random
 import time
 from PyQt5.Qt import pyqtSignal, QThread
 from Computer import Computer
-from BoardRepresentation import Evaluator, convertBoardToList
+from BoardRepresentation import Evaluator, convert_board_to_list
 
 
 # Todo
@@ -18,10 +18,10 @@ from BoardRepresentation import Evaluator, convertBoardToList
 class Environment(QThread):
     update_board_signal = pyqtSignal()
 
-    def __init__(self,update_board_func ):
+    def __init__(self, update_board_func):
         super(Environment, self).__init__()
         self.board = chess.Board()
-        self.turn = random.randint(0,1)  # 0 - Player, 1 - Computer
+        self.turn = random.randint(0, 1)  # 0 - Player, 1 - Computer
 
         self.update_board_func = update_board_func
 
@@ -40,11 +40,11 @@ class Environment(QThread):
     def game_over(self):
         return self.board.is_checkmate() or self.board.is_game_over() or self.board.is_stalemate()
 
-    def makePlayerMove(self,x,y):
+    def make_player_move(self, x, y):
 
         ROWS = 8
         if x < ROWS and y < ROWS and x >= 0 and y >= 0:
-            piece = convertBoardToList(self.board)[y][x]
+            piece = convert_board_to_list(self.board)[y][x]
 
             pos = x + ((ROWS - 1) - y) * ROWS  # Check docs chess.Squares -> chess.A1 = 0 ... chess.H8 = 63
             # If no piece is currently selected
@@ -61,7 +61,7 @@ class Environment(QThread):
                     move = chess.Move(from_square=self.piece_selected_pos, to_square=pos, promotion=5)
 
                 # If valid move
-                if self.getBoard().is_legal(move):
+                if self.get_board().is_legal(move):
                     self.queue.append(move)
                 # If not valid move
                 else:
@@ -89,7 +89,7 @@ class Environment(QThread):
             if self.turn % 2 == 1:
                 self.computer_turn()
 
-            print("Eval:", self.basicEvaluation())
+            print("Eval:", self.basic_evaluation())
             self.turn += 1
             self.update_board_signal.emit()
 
@@ -103,25 +103,19 @@ class Environment(QThread):
             self.update_board_signal.emit()
             time.sleep(2)
 
-    def newGame(self):
+    def new_game(self):
         self.board.reset()
-        self.turn = random.randint(0,1) #0 - Player, 1 - Computer
+        self.turn = random.randint(0, 1)  # 0 - Player, 1 - Computer
 
     def run(self):
         print("You are {}".format("White" if self.turn == 0 else "Black"))
 
         print("PLAYING")
-        self.play_game()
-        #self.self_play()
+        #self.play_game()
+        self.self_play()
 
-    def getBoard(self):
+    def get_board(self):
         return self.board
 
-    def basicEvaluation(self):
-        return self.evaluator.getEval(board=self.board, turn_count=self.turn, turn=self.board.turn)
-
-
-
-if __name__ == "__main__":
-    game = Environment()
-    game.show_board()
+    def basic_evaluation(self):
+        return self.evaluator.get_eval(board=self.board, turn_count=self.turn, turn=self.board.turn)

@@ -8,9 +8,10 @@ from math import floor
 # Todo
 # Add restart Game Button
 
+
 class GUI(QWidget):
 
-    def __init__(self, size = 900):
+    def __init__(self, size=900):
         super().__init__()
 
         self.size = size
@@ -22,19 +23,17 @@ class GUI(QWidget):
 
         self.setMouseTracking(True)
 
-        self.env = Environment(update_board_func = self.loadBoard)
-        self.env.update_board_signal.connect(self.loadBoard)
+        self.env = Environment(update_board_func=self.load_board)
+        self.env.update_board_signal.connect(self.load_board)
         try:
             self.env.start()
         except Exception as e:
             print(e)
 
-        self.loadBoard()
+        self.load_board()
 
-    # Don't need?
-    # Test without
-    def loadBoard(self, board = None):
-        self.chessboardSvg = chess.svg.board(self.env.getBoard()).encode("UTF-8") if board == None else board.encode("UTF-8")
+    def load_board(self, board=None):
+        self.chessboardSvg = chess.svg.board(self.env.get_board()).encode("UTF-8") if board == None else board.encode("UTF-8")
         self.widgetSvg.load(self.chessboardSvg)
 
     def mousePressEvent(self, event):
@@ -46,8 +45,7 @@ class GUI(QWidget):
         y = floor((event.y() - BORDER_LEN) / 100)
 
         if x < ROWS and y < ROWS and x >= 0 and y >= 0:
-            self.env.makePlayerMove(x,y)
-
+            self.env.make_player_move(x, y)
 
 
 if __name__ == "__main__":
