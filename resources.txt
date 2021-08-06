@@ -8,3 +8,8 @@ https://github.com/VXU1230/Medium-Tutorials/blob/master/dqn/cart_pole.py
 https://towardsdatascience.com/deep-reinforcement-learning-build-a-deep-q-network-dqn-to-play-cartpole-with-tensorflow-2-and-gym-8e105744b998
 https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
 https://github.com/higgsfield/RL-Adventure/blob/master/1.dqn.ipynb
+
+https://github.com/mswang12/minDQN/blob/main/minDQN.py
+https://towardsdatascience.com/deep-q-learning-tutorial-mindqn-2a4c855abffc
+
+https://www.analyticsvidhya.com/blog/2019/04/introduction-deep-q-learning-python/

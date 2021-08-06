@@ -92,13 +92,10 @@ class Computer:
             piece_centric_features = np.array([feature_extractor.get_piece_centric_features(board_copy)])
             square_centric_features = np.array([feature_extractor.get_square_centric_features(board_copy)])
             x = model([global_features, piece_centric_features, square_centric_features])
-            print(x)
             x = x.numpy()[0][0]  # x is stored as a [[evaluation]]
-            print(x, board_copy.turn)
 
-            x = -x if not board_copy.turn else x  # Inverse if black turn
-            print(x)
-            print('------------')
+            # x = x if board_copy.turn else -x  # Inverse if black turn
+
             if x > best_val:
                 best_val = x
                 best_move = move

@@ -30,7 +30,7 @@ class Environment(QThread):
         self.queue = []
 
         self.evaluator = Evaluator()
-        self.computer = Computer(board=self.board, algo='dqn')
+        self.computer = Computer(board=self.board, algo='minimax')  # Options are - "random", "minimax", "dqn"
 
     def show_board(self):
         print(self.board)

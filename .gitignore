@@ -133,4 +133,5 @@ Board.txt
 Notes.txt
 
 #Weights
-weights.h5
+weights/*
+weights.txt

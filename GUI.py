@@ -7,7 +7,7 @@ from math import floor
 
 # Todo
 # Add restart Game Button
-
+# Add option to choose which computer mode to play
 
 class GUI(QWidget):
 
